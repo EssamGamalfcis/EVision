@@ -2,14 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Domain;
 
 namespace Domain
 {
     public class CatalogContext : DbContext
     {
-        public CatalogContext() : base()
+        public CatalogContext(DbContextOptions options) : base(options)
         {
         }
-        public DbSet<Product> Product { get; set; }
+        public DbSet<Product> Products { get; set; }
     }
 }
