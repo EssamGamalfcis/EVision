@@ -51,13 +51,13 @@ namespace Service.Controllers
         }
         [Route("~/api/Delete")]
         [HttpDelete]
-        public StandardResponse Delete([FromHeader]long id)
+        public async Task<StandardResponse> Delete([FromHeader]long id)
         {
             try
             {
                 Product productToDelete = GetProductById(id).Product;
                 productToDelete.IsDeleted = true;
-                Edit(productToDelete);
+                await Edit(productToDelete);
                 return new StandardResponse { Message = "Deleted Successfully", Success = true };
             }
             catch (Exception e)

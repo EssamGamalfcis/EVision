@@ -14,7 +14,7 @@ namespace Service.Controllers
         ProductReturn GetProductById(long id);
         ProductsReturn Search(SearchingWithPagingParam searchingWithPagingParam);
         Task<StandardResponse> Edit(Product product);
-        StandardResponse Delete(long id);
+        Task<StandardResponse> Delete(long id);
         Task<StandardResponse> Create(Product product);
         IActionResult ExportToExcel(ExportProductsParam products);
     }
