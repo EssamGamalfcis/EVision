@@ -1,4 +1,5 @@
 ﻿using Domain;
+using Microsoft.AspNetCore.Mvc;
 using Service.Helper;
 using System;
 using System.Collections.Generic;
@@ -12,8 +13,9 @@ namespace Service.Controllers
         ProductsReturn GetAllProducts(PagingParam pagingParam);
         ProductReturn GetProductById(long id);
         ProductsReturn Search(SearchingWithPagingParam searchingWithPagingParam);
-        StandardResponse Edit(Product product);
+        Task<StandardResponse> Edit(Product product);
         StandardResponse Delete(long id);
-        StandardResponse Create(Product product);
+        Task<StandardResponse> Create(Product product);
+        IActionResult ExportToExcel(ExportProductsParam products);
     }
 }

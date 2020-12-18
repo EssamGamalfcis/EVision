@@ -18,5 +18,7 @@ namespace Service.Helper
     public class ProductsReturn : StandardResponse
     {
         public List<Product> Products { get; set; }
+        public long TotalCount { get; set; }
+
     }
 }

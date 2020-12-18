@@ -4,38 +4,59 @@ using Service.Helper;
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+
 namespace Service.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
-    public class ProductCatalogController : IProductCatalog
+    [Route("api/ProductCatalog")]
+    public class ProductCatalogController : ControllerBase , IProductCatalog
     {
         IGenericRepository<Product> productRepository;
-        public ProductCatalogController(IGenericRepository<Product> _productRepository)
+        public static IWebHostEnvironment _environment;
+        public ProductCatalogController(IGenericRepository<Product> _productRepository, IWebHostEnvironment env)
         {
             productRepository = _productRepository;
+            _environment = env;
         }
+        [Route("~/api/Create")]
         [HttpPost]
-        public StandardResponse Create(Product product)
+        public async Task<StandardResponse> Create([FromForm]Product product)
         {
             try
             {
-                productRepository.Add(product);
-                return new StandardResponse { Message = "Saved Success" , Success =true };
+                if (ModelState.IsValid)
+                {
+                    product.IsDeleted = false;
+                    product.LastUpdated = DateTime.Now;
+                    if (product.PhotoFile != null)
+                    {
+                        GlobalMethods globalMethods = new GlobalMethods(_environment);
+                        GlobalMethods.FIleUploadAPI fileToUpload = new GlobalMethods.FIleUploadAPI() { files= product.PhotoFile};
+                        product.PhotoName = await globalMethods.UploadPhoto(fileToUpload);
+                    }
+                    productRepository.Add(product);
+                    return new StandardResponse { Message = "Saved Success", Success = true };
+                }
+                else
+                { 
+                return new StandardResponse { Message = "Process failed (Model not match)", Success = false };
+                }
             }
             catch (Exception e)
             {
                 return new StandardResponse { Message = "Process failed", Success = false };
             }
         }
+        [Route("~/api/Delete")]
         [HttpDelete]
-        public StandardResponse Delete(long id)
+        public StandardResponse Delete([FromHeader]long id)
         {
             try
             {
                 Product productToDelete = GetProductById(id).Product;
                 productToDelete.IsDeleted = true;
-                productToDelete.LastUpdated = DateTime.Now;
                 Edit(productToDelete);
                 return new StandardResponse { Message = "Deleted Successfully", Success = true };
             }
@@ -44,21 +65,38 @@ namespace Service.Controllers
                 return new StandardResponse { Message = "Process failed", Success = false };
             }
         }
+        [Route("~/api/Edit")]
         [HttpPut]
-        public StandardResponse Edit(Product product)
+        public async Task<StandardResponse> Edit([FromForm]Product product)
         {
             try
             {
-                productRepository.Update(product);
-                return new StandardResponse { Message = "Updated Successfully", Success = true };
+                if (ModelState.IsValid)
+                {
+                    product.LastUpdated = DateTime.Now;
+                    if (product.PhotoFile != null)
+                    {
+                        GlobalMethods globalMethods = new GlobalMethods(_environment);
+                        GlobalMethods.FIleUploadAPI fileToUpload = new GlobalMethods.FIleUploadAPI() { files = product.PhotoFile };
+                        product.PhotoName = await globalMethods.UploadPhoto(fileToUpload);
+                    }
+                    productRepository.Update(product);
+                    return new StandardResponse { Message = "Updated Successfully", Success = true };
+                }
+                else
+                {
+                    return new StandardResponse { Message = "Process failed (Model not match)", Success = false };
+                }
+
             }
             catch (Exception e)
             { 
                 return new StandardResponse { Message = "Process failed", Success = false };
             }
         }
+        [Route("~/api/GetAllProducts")]
         [HttpGet]
-        public ProductsReturn GetAllProducts(PagingParam param)
+        public ProductsReturn GetAllProducts([FromQuery]PagingParam param)
         {
             try
             {
@@ -66,7 +104,8 @@ namespace Service.Controllers
                 return new ProductsReturn
                 {
                     Products = products.Where(x=>x.IsDeleted != true).
-                    Skip((param.PageCount--)*(param.PageCount)).Take(param.PageCount).ToList(),
+                    Skip((param.PageCount)*(--param.PageNumber)).Take(param.PageCount).ToList(),
+                    TotalCount = products.Count(x => x.IsDeleted != true),
                     Message = "Process success",
                     Success = true
                 };
@@ -82,8 +121,9 @@ namespace Service.Controllers
 
             }
         }
+        [Route("~/api/GetProductById")]
         [HttpGet]
-        public ProductReturn GetProductById(long id)
+        public ProductReturn GetProductById([FromQuery]long id)
         {
             try
             {
@@ -104,8 +144,9 @@ namespace Service.Controllers
                 };
             }
         }
+        [Route("~/api/Search")]
         [HttpGet]
-        public ProductsReturn Search(SearchingWithPagingParam param)
+        public ProductsReturn Search([FromQuery]SearchingWithPagingParam param)
         {
             try
             {
@@ -113,8 +154,9 @@ namespace Service.Controllers
 
                 return new ProductsReturn
                 {
-                    Products = products.Where(x=>x.Name == param.productName && x.IsDeleted != true).
-                                Skip((param.PageCount--) * (param.PageCount)).Take(param.PageCount).ToList(),
+                    Products = products.Where(x=>x.Name.Contains(param.productName) && x.IsDeleted != true).
+                                Skip((param.PageCount) * (--param.PageNumber)).Take(param.PageCount).ToList(),
+                    TotalCount = products.Count(x =>x.Name.Contains(param.productName) &&  x.IsDeleted != true),
                     Message = "Process success",
                     Success = true
                 };
@@ -128,6 +170,23 @@ namespace Service.Controllers
                     Success = false
                 };
 
+            }
+        }
+
+        [Route("~/api/ExportToExcell")]
+        [HttpPost]
+        public IActionResult ExportToExcel([FromBody]ExportProductsParam products)
+        {
+            try
+            {
+                GlobalMethods globalMethods = new GlobalMethods(_environment);
+                PagingParam pagingParam = new PagingParam() { PageCount = products.PageCount, PageNumber = products.PageNumber };
+                products.products = GetAllProducts(pagingParam).Products;
+                return globalMethods.ExportToExcel(this, products.products);
+            }
+            catch
+            {
+                return NotFound();
             }
         }
     }
