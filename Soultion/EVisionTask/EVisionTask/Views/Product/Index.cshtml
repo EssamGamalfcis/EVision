@@ -1,0 +1,221 @@
+﻿@model Service.Helper.ProductsReturn
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<style>
+    #btnwrap {
+        width: 100%;
+    }
+
+    .text_center {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    #paging li {
+        display: inline-block;
+    }
+
+    img {
+        width: 150px !important; /* You can set the dimensions to whatever you want */
+        height: 100px !important;
+        object-fit: cover;
+    }
+
+    .currentPage {
+        background-color: darkgray !important;
+    }
+
+    .hover_pointer {
+        cursor: pointer;
+    }
+</style>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+<link href="~/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" />
+<script src="~/lib/sweatalert/dist/sweetalert2.all.min.js"></script>
+<div class="container">
+
+
+    <div class="text-center row">
+        <h1 class="display-4">Welcome to product catalog</h1>
+    </div>
+
+    <nav class="navbar navbar-light bg-light justify-content-between">
+        <div class="form-inline">
+            <label for="sel1">Page Size:</label>
+            <select class="form-control ml-2" id="PageSize" onchange="PageSizeChanged(this)">
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+
+        <div class="form-inline">
+            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="SearchProductInput" onchange="SearchProduct()">
+        </div>
+    </nav>
+
+
+    @{ if (Model.Products.Count > 0)
+        {
+            <table class="table table-striped table-dark table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col" class="text_center">Full Name</th>
+                        <th scope="col" class="text_center">Product Price</th>
+                        <th scope="col" class="text_center">LastUpdated</th>
+                        <th scope="col" width="150" class="text_center">Product Photo</th>
+                        <th scope="col" class="text_center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        foreach (var product in Model.Products)
+                        {
+                            <tr class="line-content @product.Id">
+                                <td class="text_center align-middle">@product.Name</td>
+                                <td class="text_center align-middle">@product.Price</td>
+                                <td class="text_center align-middle">@String.Format("{0:dd/MM/yyyy}", product.LastUpdated)</td>
+                                <td height="100">
+                                    <div>
+                                        <img class="img-thumbnail" src="@product.PhotoName" alt="Responsive image">
+                                    </div>
+                                </td>
+                                <td style="text-align:center;" class="align-middle">
+                                    <div id="btnwrap">
+                                        <button class="btn btn-primary" onclick="Edit(@product.Id);">Edit</button>
+                                        <button class="btn btn-danger ml-2" onclick="DeleteConfirmation(@product.Id);">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+
+                    }
+                </tbody>
+            </table>
+        }
+        <div class="row justify-content-xl-center" style="height:100px">
+            <ul class="pagination" id="paging">
+            </ul>
+        </div>
+    }
+</div>
+<script>
+        var pageSize = @ViewBag.PageSize;
+        var totalCount = @Model.TotalCount;
+        var pageCount = totalCount / pageSize;
+        $('#PageSize').val(@ViewBag.PageSize);
+        $('#SearchProductInput').val('@ViewBag.SearchKey');
+        var isCurrent = '';
+    for (var i = 0; i < pageCount; i++) {
+        if (i == @ViewBag.PageNumber - 1) {
+            isCurrent = "currentPage";
+        }
+        else {
+            isCurrent = '';
+        }
+        $("#paging").append('<li class="hover_pointer"><a  class="page-link btn ' + isCurrent + '"  onclick="PageNumberChangd(this)">' + (i + 1) + '</a></li> ');
+    }
+    showPage = function (page) {
+        $(".line-content").hide();
+        $(".line-content").each(function (n) {
+            if (n >= pageSize * (page - 1) && n < pageSize * page)
+                $(this).show();
+        });
+    }
+
+    function PageNumberChangd(obj) {
+        var searchKey = GetParameterValues('ProductName');
+        $("#paging li a").removeClass("currentPage");
+        $(obj).addClass("currentPage");
+        if (searchKey == '' || searchKey == null) {
+            totalCount = @Model.TotalCount;
+            pageCount = totalCount / pageSize;
+            $("#paging li a").removeClass("currentPage");
+            $(obj).addClass("currentPage");
+            showPage(1);
+            var url = '@Url.Action("Index", "Product")?pageNumber=' + parseInt($('.page-link.currentPage')[0].text) + '&PageCount=' + pageSize;
+            window.location.href = url;
+        }
+        else {
+            SearchProduct();
+        }
+    }
+    function PageSizeChanged(obj) {
+        var searchKey = GetParameterValues('ProductName');
+          pageSize = parseInt(obj.value);
+        if (searchKey == '' || searchKey == null) {
+            totalCount = @Model.TotalCount;
+            pageCount = totalCount / pageSize;
+            showPage(1);
+            var url = '@Url.Action("Index", "Product")?pageNumber=' + parseInt($('.page-link.currentPage')[0].text) + '&PageCount=' + pageSize;
+            window.location.href = url;
+        }
+        else {
+            SearchProduct();
+        }
+    }
+    function SearchProduct() {
+        totalCount = @Model.TotalCount;
+        pageCount = totalCount / pageSize;
+        showPage(1);
+        var url = '@Url.Action("Index", "Product")?pageNumber=' + parseInt($('.page-link.currentPage')[0].text) + '&PageCount=' + pageSize + '&ProductName=' + $('#SearchProductInput').val();
+        window.location.href = url;
+    }
+    function GetParameterValues(param) {
+        var url = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+        for (var i = 0; i < url.length; i++) {
+            var urlparam = url[i].split('=');
+            if (urlparam[0] == param) {
+                return urlparam[1];
+            }
+        }
+    }
+    function DeleteConfirmation(id) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                DeleteProduct(id);
+            }
+        })
+        function DeleteProduct(id)
+        {
+            var url = '@Url.Action("Delete", "Product")?id=' + id;
+            $.ajax({
+                type: "DELETE",
+                url: url,
+                contentType: "application/json;",
+                async: false,
+                success: function (data) {
+                    if (data == true || data == 'true') {
+                        Swal.fire(
+                            'Deleted!',
+                            'the product has been deleted.',
+                            'success'
+                        ).then(function () {
+                            location.reload();
+                        })
+                    }
+                    else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: 'Something went wrong!'
+                        })
+                    }
+                }
+            })
+        }
+
+    }
+</script>

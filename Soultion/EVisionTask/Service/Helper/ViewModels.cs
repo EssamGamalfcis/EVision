@@ -17,10 +17,10 @@ namespace Service.Helper
     }
     public class SearchingWithPagingParam : PagingParam
     {
-        public string productName { get; set; }
+        public string ProductName { get; set; }
     }
     public class ExportProductsParam : PagingParam
     {
-       public List<Product> products { get; set; }
+       public List<Product> Products { get; set; }
     }
 }

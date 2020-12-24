@@ -27,11 +27,11 @@ namespace Service.Helper
             {
                 try
                 {
-                    if (!Directory.Exists(_environment.WebRootPath + "\\uploads\\"))
+                    if (!Directory.Exists(_environment.WebRootPath + "\\inetpub\\wwwroot\\uploads\\"))
                     {
-                        Directory.CreateDirectory(_environment.WebRootPath + "\\uploads\\");
+                        Directory.CreateDirectory(_environment.WebRootPath + "\\inetpub\\wwwroot\\uploads\\");
                     }
-                    using (FileStream filestream = System.IO.File.Create(_environment.WebRootPath + "\\uploads\\" + files.files.FileName))
+                    using (FileStream filestream = System.IO.File.Create(_environment.WebRootPath + "\\inetpub\\wwwroot\\uploads\\" + files.files.FileName))
                     {
                         files.files.CopyTo(filestream);
                         filestream.Flush();

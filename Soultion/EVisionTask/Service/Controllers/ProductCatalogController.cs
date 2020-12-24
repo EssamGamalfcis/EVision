@@ -104,7 +104,7 @@ namespace Service.Controllers
                 return new ProductsReturn
                 {
                     Products = products.Where(x=>x.IsDeleted != true).
-                    Skip((param.PageCount)*(--param.PageNumber)).Take(param.PageCount).ToList(),
+                    Skip((param.PageCount)*(--param.PageNumber)).Take(param.PageCount).OrderByDescending(x=>x.LastUpdated).ToList(),
                     TotalCount = products.Count(x => x.IsDeleted != true),
                     Message = "Process success",
                     Success = true
@@ -154,9 +154,9 @@ namespace Service.Controllers
 
                 return new ProductsReturn
                 {
-                    Products = products.Where(x=>x.Name.Contains(param.productName) && x.IsDeleted != true).
+                    Products = products.Where(x=>x.Name.Contains(param.ProductName) && x.IsDeleted != true).
                                 Skip((param.PageCount) * (--param.PageNumber)).Take(param.PageCount).ToList(),
-                    TotalCount = products.Count(x =>x.Name.Contains(param.productName) &&  x.IsDeleted != true),
+                    TotalCount = products.Count(x =>x.Name.Contains(param.ProductName) &&  x.IsDeleted != true),
                     Message = "Process success",
                     Success = true
                 };
@@ -181,8 +181,8 @@ namespace Service.Controllers
             {
                 GlobalMethods globalMethods = new GlobalMethods(_environment);
                 PagingParam pagingParam = new PagingParam() { PageCount = products.PageCount, PageNumber = products.PageNumber };
-                products.products = GetAllProducts(pagingParam).Products;
-                return globalMethods.ExportToExcel(this, products.products);
+                products.Products = GetAllProducts(pagingParam).Products;
+                return globalMethods.ExportToExcel(this, products.Products);
             }
             catch
             {
