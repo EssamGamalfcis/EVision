@@ -147,7 +147,7 @@
                         </div>
                         <div class="form-group ml-5 w-75">
                             <label for="PhotoFile">Upload Image:</label>
-                            <input type="file" name="PhotoFile" id="PhotoFile" class="form-control-file" />
+                            <input type="file" name="PhotoFile" id="PhotoFile" class="form-control-file" accept="image/*" />
                         </div>
                         <input type="submit" value="Create" class="btn btn-info ml-5" onclick="return validateForm();" />
                     }
@@ -207,7 +207,7 @@
                                 old image :<span id="OldImage"></span>
                             </div>
                             <label for="PhotoFileUpdate">Update Image: </label>
-                            <input type="file" name="PhotoFile" id="PhotoFileUpdate" class="form-control-file" />
+                            <input type="file" name="PhotoFile" id="PhotoFileUpdate" class="form-control-file" accept="image/*" />
                         </div>
                         <input type="submit" value="Update" class="btn btn-info ml-5" onclick="return validateFormForUpdate();" />
                     }
