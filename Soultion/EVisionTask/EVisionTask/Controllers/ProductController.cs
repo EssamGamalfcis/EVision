@@ -13,10 +13,6 @@ namespace EVisionTask.Controllers
 {
     public class ProductController : Controller
     {
-        //public IActionResult Index()
-        //{
-        //    return View();
-        //}
         //Hosted web API REST Service base url  
         string Baseurl = "http://localhost:55468/";
         public async Task<ActionResult> Index(SearchingWithPagingParam obj)
@@ -31,6 +27,22 @@ namespace EVisionTask.Controllers
             ViewBag.PageNumber = obj.PageNumber;
             ViewBag.PageSize = obj.PageCount;
             ViewBag.SearchKey = null;
+            ViewBag.SavedUpdated = "Not Set";
+            if (TempData["Saved"] != null)
+            {
+                if (TempData["Saved"].ToString() == "Saved Successfully")
+                {
+                    ViewBag.SavedUpdated = "Saved Successfully";
+                }
+                else if (TempData["Saved"].ToString() == "Updated Successfully")
+                {
+                    ViewBag.SavedUpdated = "Updated Successfully";
+                }
+                else
+                {
+                    ViewBag.SavedUpdated = "Process failed";
+                }
+            }
             /*check whether search or get all*/
             string apiURL = "";
             if (obj.ProductName == null || obj.ProductName == "" || obj.ProductName == "undefined")
@@ -62,34 +74,103 @@ namespace EVisionTask.Controllers
         public async Task<ActionResult> Create(Product product)
         {
             StandardResponse retObj = new StandardResponse();
-            using (var client = new HttpClient())
+            using (var content = new MultipartFormDataContent())
             {
-                client.BaseAddress = new Uri(Baseurl);
-                var Res = await client.PostAsJsonAsync<Product>("product", product);
-                if (Res.IsSuccessStatusCode)
+                var values = new[]
                 {
-                    var createProductResponse = Res.Content.ReadAsStringAsync().Result;
-                    retObj = JsonConvert.DeserializeObject<StandardResponse>(createProductResponse);
+                    new KeyValuePair<string, string>("Name", product.Name),
+                    new KeyValuePair<string, string>("Price", product.Price.ToString())
+                };
+
+                foreach (var keyValuePair in values)
+                {
+                    content.Add(new StringContent(keyValuePair.Value), keyValuePair.Key);
+                }
+                if (product.PhotoFile != null)
+                {
+                    var fileName = ContentDispositionHeaderValue.Parse(product.PhotoFile.ContentDisposition).FileName.Trim('"');
+                    content.Add(new StreamContent(product.PhotoFile.OpenReadStream())
+                    {
+                        Headers =
+                    {
+                        ContentLength = product.PhotoFile.Length,
+                        ContentType = new MediaTypeHeaderValue(product.PhotoFile.ContentType)
+                    }
+                    }, "PhotoFile", fileName);
+                }
+                using (var client = new HttpClient())
+                {
+
+                    client.BaseAddress = new Uri(Baseurl);
+                    var Res = await client.PostAsync("api/Create", content);
+                    if (Res.IsSuccessStatusCode)
+                    {
+                        var createProductResponse = Res.Content.ReadAsStringAsync().Result;
+                        retObj = JsonConvert.DeserializeObject<StandardResponse>(createProductResponse);
+                        if (retObj.Message != "Process failed")
+                        {
+                            TempData["Saved"] = "Saved Successfully";
+                        }
+                        else
+                        {
+                            TempData["Saved"] = "Process failed";
+                        }
+                    }
                 }
             }
 
-            return View(product);
+            return RedirectToAction("Index");
+
         }
-        public async Task<ActionResult> Edit(Product product)
+        public async Task<ActionResult> Edit(Product product, [FromForm] SearchingWithPagingParam obj)
         {
             StandardResponse retObj = new StandardResponse();
-            using (var client = new HttpClient())
+            using (var content = new MultipartFormDataContent())
             {
-                client.BaseAddress = new Uri(Baseurl);
-                var Res = await client.PutAsJsonAsync<Product>("product", product);
-                if (Res.IsSuccessStatusCode)
+                var values = new[]
                 {
-                    var createProductResponse = Res.Content.ReadAsStringAsync().Result;
-                    retObj = JsonConvert.DeserializeObject<StandardResponse>(createProductResponse);
+                    new KeyValuePair<string, string>("Id", product.Id.ToString()),
+                    new KeyValuePair<string, string>("Name", product.Name),
+                    new KeyValuePair<string, string>("Price", product.Price.ToString())
+                };
+
+                foreach (var keyValuePair in values)
+                {
+                    content.Add(new StringContent(keyValuePair.Value), keyValuePair.Key);
+                }
+                if (product.PhotoFile != null)
+                {
+                    var fileName = ContentDispositionHeaderValue.Parse(product.PhotoFile.ContentDisposition).FileName.Trim('"');
+                    content.Add(new StreamContent(product.PhotoFile.OpenReadStream())
+                    {
+                        Headers =
+                    {
+                        ContentLength = product.PhotoFile.Length,
+                        ContentType = new MediaTypeHeaderValue(product.PhotoFile.ContentType)
+                    }
+                    }, "PhotoFile", fileName);
+                }
+                using (var client = new HttpClient())
+                {
+
+                    client.BaseAddress = new Uri(Baseurl);
+                    var Res = await client.PutAsync("api/Edit", content);
+                    if (Res.IsSuccessStatusCode)
+                    {
+                        var createProductResponse = Res.Content.ReadAsStringAsync().Result;
+                        retObj = JsonConvert.DeserializeObject<StandardResponse>(createProductResponse);
+                        if (retObj.Message != "Process failed")
+                        {
+                            TempData["Saved"] = "Updated Successfully";
+                        }
+                        else
+                        {
+                            TempData["Saved"] = "Process failed";
+                        }
+                    }
                 }
             }
-
-            return View(product);
+            return RedirectToAction("Index", obj);
         }
         [HttpDelete]
         public async Task<bool> Delete(long id)
@@ -113,5 +194,6 @@ namespace EVisionTask.Controllers
 
             return false;
         }
+
     }
 }

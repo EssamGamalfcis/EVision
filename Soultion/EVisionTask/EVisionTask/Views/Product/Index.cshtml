@@ -7,7 +7,10 @@
     #btnwrap {
         width: 100%;
     }
-
+    .noDataFound {
+        background-color: bisque;
+        margin-bottom: 112px;
+    }
     .text_center {
         text-align: center;
         vertical-align: middle;
@@ -42,25 +45,26 @@
         <h1 class="display-4">Welcome to product catalog</h1>
     </div>
 
-    <nav class="navbar navbar-light bg-light justify-content-between">
-        <div class="form-inline">
-            <label for="sel1">Page Size:</label>
-            <select class="form-control ml-2" id="PageSize" onchange="PageSizeChanged(this)">
-                <option value="5" selected>5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-            </select>
-        </div>
 
-        <div class="form-inline">
-            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="SearchProductInput" onchange="SearchProduct()">
-        </div>
-    </nav>
 
 
     @{ if (Model.Products.Count > 0)
         {
+            <nav class="navbar navbar-light bg-light justify-content-between">
+                <div class="form-inline">
+                    <label for="sel1">Page Size:</label>
+                    <select class="form-control ml-2" id="PageSize" onchange="PageSizeChanged(this)">
+                        <option value="5" selected>5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+
+                <div class="form-inline">
+                    <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="SearchProductInput" onchange="SearchProduct()">
+                </div>
+            </nav>
             <table class="table table-striped table-dark table-hover">
                 <thead>
                     <tr>
@@ -73,8 +77,11 @@
                 </thead>
                 <tbody>
                     @{
+                        string photoNameUpdate = "";
                         foreach (var product in Model.Products)
                         {
+                            photoNameUpdate = product.PhotoName != null ? product.PhotoName.Substring(product.PhotoName.LastIndexOf("\\") + 1) : "";
+
                             <tr class="line-content @product.Id">
                                 <td class="text_center align-middle">@product.Name</td>
                                 <td class="text_center align-middle">@product.Price</td>
@@ -86,7 +93,7 @@
                                 </td>
                                 <td style="text-align:center;" class="align-middle">
                                     <div id="btnwrap">
-                                        <button class="btn btn-primary" onclick="Edit(@product.Id);">Edit</button>
+                                        <button class="btn btn-primary" onclick="Edit(@product.Id , '@product.Name' , @product.Price , '@photoNameUpdate');" data-toggle="modal" data-target="#updateProduct">Edit</button>
                                         <button class="btn btn-danger ml-2" onclick="DeleteConfirmation(@product.Id);">Delete</button>
                                     </div>
                                 </td>
@@ -96,14 +103,207 @@
                     }
                 </tbody>
             </table>
+            <div class="row justify-content-xl-center" style="height:100px">
+                <ul class="pagination" id="paging">
+                </ul>
+            </div>
+            <div class="row justify-content-xl-end">
+                <button class="btn btn-primary" onclick="Export()" style="position: absolute; margin-top: -6%;">Export</button>
+            </div>
         }
-        <div class="row justify-content-xl-center" style="height:100px">
-            <ul class="pagination" id="paging">
-            </ul>
+        else
+        {
+            <div class="text-center row noDataFound">
+                <h1 class="display-4">no products found feel free to create new products</h1>
+            </div>
+            <button type="button" style="float:right" class="btn btn-primary" onclick="BackToMain()">
+                Back
+            </button>
+        }}
+    @*add new*@
+    <div class="container">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createNewProduct" style=" margin-top: -15%;">
+            Create
+        </button>
+        <!-- The Modal -->
+        <div class="modal fade" id="createNewProduct">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <h4 class="modal-title">Create new product</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    @using (Html.BeginForm("Create", "Product", FormMethod.Post,
+                 new { enctype = "multipart/form-data", @id = "form1" }))
+                    {
+                        <div class="form-group ml-5 w-75">
+                            <label for="Name">Product full name</label>
+                            <input type="text" name="Name" id="Name" class="form-control" />
+                        </div>
+                        <div class="form-group ml-5 w-75">
+                            <label for="Price">Product price</label>
+                            <input type="number" name="Price" id="Price" class="form-control" />
+                        </div>
+                        <div class="form-group ml-5 w-75">
+                            <label for="PhotoFile">Upload Image:</label>
+                            <input type="file" name="PhotoFile" id="PhotoFile" class="form-control-file" />
+                        </div>
+                        <input type="submit" value="Create" class="btn btn-info ml-5" onclick="return validateForm();" />
+                    }
+                    <!-- Modal footer -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                    </div>
+
+                </div>
+            </div>
         </div>
-    }
+
+    </div>
+
+    @*Update product*@
+    <div class="container">
+        <!-- The Modal -->
+        <div class="modal fade" id="updateProduct">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <h4 class="modal-title">Update product</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    @using (Html.BeginForm("Edit", "Product", FormMethod.Post,
+             new { enctype = "multipart/form-data", @id = "form2" }))
+                    {
+                        <div class="form-group ml-5 w-75" style="display:none">
+                            <label for="PageNumberUpdate">Product full name</label>
+                            <input type="text" name="PageNumber" id="PageNumberUpdate" class="form-control" />
+                        </div>
+
+                        <div class="form-group ml-5 w-75" style="display:none">
+                            <label for="PageCountUpdate">Product full name</label>
+                            <input type="text" name="PageCount" id="PageCountUpdate" class="form-control" />
+                        </div>
+                        <div class="form-group ml-5 w-75" style="display:none">
+                            <label for="ProductNameUpdate">Product full name</label>
+                            <input type="text" name="ProductName" id="ProductNameUpdate" class="form-control" />
+                        </div>
+
+                        <div class="form-group ml-5 w-75" style="display:none">
+                            <label for="Id">Product full name</label>
+                            <input type="text" name="Id" id="Id" class="form-control" />
+                        </div>
+                        <div class="form-group ml-5 w-75">
+                            <label for="NameUpdate">Product full name</label>
+                            <input type="text" name="Name" id="NameUpdate" class="form-control" />
+                        </div>
+                        <div class="form-group ml-5 w-75">
+                            <label for="PriceUpdate">Product price</label>
+                            <input type="number" name="Price" id="PriceUpdate" class="form-control" />
+                        </div>
+                        <div class="form-group ml-5 w-75">
+                            <div class="row ml-0 w-75">
+                                old image :<span id="OldImage"></span>
+                            </div>
+                            <label for="PhotoFileUpdate">Update Image: </label>
+                            <input type="file" name="PhotoFile" id="PhotoFileUpdate" class="form-control-file" />
+                        </div>
+                        <input type="submit" value="Update" class="btn btn-info ml-5" onclick="return validateFormForUpdate();" />
+                    }
+                    <!-- Modal footer -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
 </div>
 <script>
+    function Export() {
+
+        window.open('http://localhost:55468/api/ExportToExcell?PageNumber=' + parseInt($('.page-link.currentPage')[0].text) + '&PageCount=' + pageSize + '&ProductName=' + $('#SearchProductInput').val(), '_blank', '');
+    }
+    var savedOrUpdated ="@ViewBag.SavedUpdated";
+    if (savedOrUpdated != "Not Set") {
+        if (savedOrUpdated == "Saved Successfully") {
+            Swal.fire(
+                'Saved!',
+                'the product has been saved.',
+                'success'
+            ).then(function () {
+                location.reload();
+            })
+        }
+        else if (savedOrUpdated == "Updated Successfully") {
+            Swal.fire(
+                'Updated!',
+                'the product has been updated.',
+                'success'
+            ).then(function () {
+                location.reload();
+            })
+        }
+        else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong!'
+            })
+        }
+    }
+    function Edit(id, productName, productPrice, productImage)
+    {
+        $('#PageNumberUpdate').val(parseInt($('.page-link.currentPage')[0].text));
+        $('#PageCountUpdate').val(pageSize);
+        $('#ProductNameUpdate').val($('#SearchProductInput').val());
+
+        $('#Id').val(id);
+        $('#NameUpdate').val(productName);
+        $('#PriceUpdate').val(productPrice)
+        $('#OldImage').text(productImage)
+        $('#updateProduct').modal('show');
+    }
+    function validateFormForUpdate() {
+        if ($('#NameUpdate').val() == '') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Product name is required'
+            })
+        }
+        else if ($('#PriceUpdate').val() == '') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Product price is required'
+            })
+        }
+
+        else {
+            $('#form2').submit();
+        }
+    }
+    function validateForm() {
+        if ($('#Name').val() == '') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Product name is required'
+            })
+        }
+        else if ($('#Price').val() == '') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Product price is required'
+            })
+        }
+
+        else {
+            $('#form1').submit();
+        }
+    }
         var pageSize = @ViewBag.PageSize;
         var totalCount = @Model.TotalCount;
         var pageCount = totalCount / pageSize;
@@ -126,7 +326,10 @@
                 $(this).show();
         });
     }
-
+    function BackToMain() {
+        var url = '@Url.Action("Index", "Product")';
+            window.location.href = url;
+    }
     function PageNumberChangd(obj) {
         var searchKey = GetParameterValues('ProductName');
         $("#paging li a").removeClass("currentPage");
@@ -218,4 +421,5 @@
         }
 
     }
+
 </script>

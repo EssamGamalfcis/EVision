@@ -71,16 +71,27 @@ namespace Service.Controllers
         {
             try
             {
+                Product newUpdatedProduct = GetProductById(product.Id).Product;
                 if (ModelState.IsValid)
                 {
-                    product.LastUpdated = DateTime.Now;
+                    newUpdatedProduct.LastUpdated = DateTime.Now;
                     if (product.PhotoFile != null)
                     {
                         GlobalMethods globalMethods = new GlobalMethods(_environment);
-                        GlobalMethods.FIleUploadAPI fileToUpload = new GlobalMethods.FIleUploadAPI() { files = product.PhotoFile };
-                        product.PhotoName = await globalMethods.UploadPhoto(fileToUpload);
+                        if (product.PhotoFile != null)
+                        {
+                            GlobalMethods.FIleUploadAPI fileToUpload = new GlobalMethods.FIleUploadAPI() { files = product.PhotoFile };
+                            newUpdatedProduct.PhotoName = await globalMethods.UploadPhoto(fileToUpload);
+                        }
                     }
-                    productRepository.Update(product);
+                    else
+                    {
+                        newUpdatedProduct.PhotoName = GetProductById(product.Id).Product.PhotoName;
+                    }
+                    //newUpdatedProduct.IsDeleted = false;
+                    newUpdatedProduct.Name = product.Name;
+                    newUpdatedProduct.Price = product.Price;
+                    productRepository.Update(newUpdatedProduct);
                     return new StandardResponse { Message = "Updated Successfully", Success = true };
                 }
                 else
@@ -110,7 +121,7 @@ namespace Service.Controllers
                     Success = true
                 };
             }
-            catch
+            catch(Exception e)
             {
                 return new ProductsReturn
                 {
@@ -174,13 +185,13 @@ namespace Service.Controllers
         }
 
         [Route("~/api/ExportToExcell")]
-        [HttpPost]
-        public IActionResult ExportToExcel([FromBody]ExportProductsParam products)
+        [HttpGet]
+        public IActionResult ExportToExcel([FromQuery]ExportProductsParam products)
         {
             try
             {
                 GlobalMethods globalMethods = new GlobalMethods(_environment);
-                PagingParam pagingParam = new PagingParam() { PageCount = products.PageCount, PageNumber = products.PageNumber };
+                SearchingWithPagingParam pagingParam = new SearchingWithPagingParam() { PageCount = products.PageCount, PageNumber = products.PageNumber ,ProductName = products.ProductName };
                 products.Products = GetAllProducts(pagingParam).Products;
                 return globalMethods.ExportToExcel(this, products.Products);
             }

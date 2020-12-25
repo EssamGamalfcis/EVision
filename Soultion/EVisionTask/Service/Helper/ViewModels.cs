@@ -19,7 +19,7 @@ namespace Service.Helper
     {
         public string ProductName { get; set; }
     }
-    public class ExportProductsParam : PagingParam
+    public class ExportProductsParam : SearchingWithPagingParam
     {
        public List<Product> Products { get; set; }
     }
